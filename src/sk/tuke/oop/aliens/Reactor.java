@@ -11,6 +11,8 @@ public class Reactor extends AbstractActor {
     private int hotTemp;
     private int safeTemp;
     private int yearOfProduction;
+    // variable for temp -> dmg conversion
+    private int divideBy;
     private boolean isBroken;
     private String manufacturer;
     private static final Animation normalAnim = new Animation("images/reactor_on.png", 80, 80, 100);
@@ -33,6 +35,7 @@ public class Reactor extends AbstractActor {
         setSafeTemp(2000); // after this temp dmg starts to increase
         setHotTemp(4000);
         setMaxTemp(6000); // temp of reactor breaking down
+        divideBy = (getMaxTemp() - getSafeTemp()) / 100;
         setIsBroken(false);
         // animation will continue back ( 1 => 2 => 3 => 2 => 1)
         // instead of repeating ( 1 => 2 => 3 => 1 => 2)
@@ -113,6 +116,26 @@ public class Reactor extends AbstractActor {
         return false;
     }
 
+    public void repairWith (Hammer hammer) {
+        // repairing works with hammer only
+        if (hammer == null) return;
+        // repairing only damaged, but not destroyed reactor
+        if (getDmg() == 0 || isBroken) return;
+
+        // temporary variable for lowering temperature
+        int dmgRed = getDmg() - 50;
+
+        if (getDmg() - 50 < 0) setDmg(0);
+        else setDmg(getDmg() - 50);
+        hammer.use();
+
+        // reducing temperature
+        int newTemp = dmgRed * divideBy + 2000;
+        if (getTemp() > newTemp) setTemp(newTemp);
+
+        updateAnim();
+    }
+
     public void incTemp(int increment) {
         // no increase after breaking or increment being negative
         if (getIsBroken() || increment < 0) return;
@@ -124,8 +147,6 @@ public class Reactor extends AbstractActor {
         // increase
         setTemp((int) Math.ceil(getTemp() + (increment * incRate)));
 
-        // variable for temp -> dmg conversion
-        int divideBy = (getMaxTemp() - getSafeTemp()) / 100;
         // increasing dmg alongside with temp increase
         int increasedTemp = (getTemp() - getSafeTemp()) / divideBy;
         if (getTemp() > getSafeTemp() && (increasedTemp) > getDmg()) {
